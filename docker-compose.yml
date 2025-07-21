@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: payroll
+      POSTGRES_USER: payroll_user
+      POSTGRES_PASSWORD: payroll_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq_user
+      RABBITMQ_DEFAULT_PASS: rabbitmq_pass
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://payroll_user:payroll_pass@postgres:5432/payroll
+      CELERY_BROKER_URL: amqp://rabbitmq_user:rabbitmq_pass@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      JWT_SECRET_KEY: demo-secret-key-for-interview
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./storage:/storage
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://payroll_user:payroll_pass@postgres:5432/payroll
+      CELERY_BROKER_URL: amqp://rabbitmq_user:rabbitmq_pass@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./storage:/storage
+    command: celery -A tasks worker --loglevel=info
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
+
+volumes:
+  postgres_data:
