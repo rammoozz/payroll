@@ -32,12 +32,6 @@ describe('Login Flow', () => {
   });
 
   it('shows error with invalid credentials', () => {
-    // Intercept the login request
-    cy.intercept('POST', '/api/login', {
-      statusCode: 401,
-      body: { detail: 'Incorrect email or password' }
-    }).as('loginRequest');
-    
     // Enter wrong credentials
     cy.get('[data-cy=email]').type('smith@demo.com');
     cy.get('[data-cy=password]').type('wrongpassword');
@@ -45,14 +39,11 @@ describe('Login Flow', () => {
     // Submit form
     cy.get('[data-cy=submit]').click();
     
-    // Wait for the API call
-    cy.wait('@loginRequest');
+    // Should show error message
+    cy.get('.error').should('be.visible').and('contain', 'Incorrect email or password');
     
     // Should still be on login page (not redirected)
     cy.url().should('include', '/login');
-    
-    // Should show error message
-    cy.get('.error').should('be.visible').and('contain', 'Incorrect email or password');
   });
 
   it('redirects to login when not authenticated', () => {
