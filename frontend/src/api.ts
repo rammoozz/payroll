@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -19,7 +19,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Don't redirect if we're already on the login page or if it's a login request
+    const isLoginRequest = error.config?.url?.includes('/login');
+    const isOnLoginPage = window.location.pathname === '/login';
+    
+    if (error.response?.status === 401 && !isLoginRequest && !isOnLoginPage) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -75,7 +79,7 @@ export const payrollApi = {
   },
   
   downloadPdf: (runId: number): string => {
-    return `${API_URL}/payroll/${runId}/pdf`;
+    return `/api/payroll/${runId}/pdf`;
   },
 };
 

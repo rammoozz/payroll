@@ -19,7 +19,8 @@ function Login() {
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('familyOfficeName', response.family_office_name);
       navigate('/employees');
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Login error:', err);
       setError('Incorrect email or password');
     } finally {
       setLoading(false);
